@@ -1,0 +1,8 @@
+streamlit>=1.58,<2
+duckdb>=1.4,<2
+pandas>=2.2,<3
+numpy>=2.0,<3
+plotly>=6,<7
+requests>=2.32,<3
+scikit-learn>=1.6,<2
+statsmodels>=0.14,<0.15
