@@ -496,22 +496,10 @@ def insert_observations(df: pd.DataFrame) -> int:
     # De-duplicate within the incoming batch first.
     work = work.drop_duplicates(subset=["location_id", "observed_at"])
 
-    # Find timestamps already stored.
-    existing = con.execute(
-        """
-        SELECT location_id, observed_at
-        FROM air_quality_observations
-        """
-    ).df()
-
-    if not existing.empty:
-        work = work.merge(
-            existing.assign(_exists=1),
-            on=["location_id", "observed_at"],
-            how="left",
-        )
-        work = work[work["_exists"].isna()].drop(columns=["_exists"])
-
+    # Keep existing timestamps in the batch because current Open-Meteo
+    # observations may use the same hourly timestamp. In that case we need
+    # to UPDATE the existing row so newly added pollutant-specific AQI fields
+    # are populated.
     if work.empty:
         con.close()
         return 0
@@ -554,9 +542,27 @@ def insert_observations(df: pd.DataFrame) -> int:
         INSERT INTO air_quality_observations
         SELECT *
         FROM incoming_observations
+        ON CONFLICT (location_id, observed_at) DO UPDATE SET
+            pm2_5 = EXCLUDED.pm2_5,
+            pm10 = EXCLUDED.pm10,
+            nitrogen_dioxide = EXCLUDED.nitrogen_dioxide,
+            ozone = EXCLUDED.ozone,
+            sulphur_dioxide = EXCLUDED.sulphur_dioxide,
+            carbon_monoxide = EXCLUDED.carbon_monoxide,
+            dust = EXCLUDED.dust,
+            european_aqi = EXCLUDED.european_aqi,
+            us_aqi = EXCLUDED.us_aqi,
+            us_aqi_pm2_5 = EXCLUDED.us_aqi_pm2_5,
+            us_aqi_pm10 = EXCLUDED.us_aqi_pm10,
+            us_aqi_nitrogen_dioxide = EXCLUDED.us_aqi_nitrogen_dioxide,
+            us_aqi_ozone = EXCLUDED.us_aqi_ozone,
+            us_aqi_sulphur_dioxide = EXCLUDED.us_aqi_sulphur_dioxide,
+            us_aqi_carbon_monoxide = EXCLUDED.us_aqi_carbon_monoxide,
+            ingested_at_utc = EXCLUDED.ingested_at_utc
         """
     )
 
+    # Count inserted/updated observations for the pipeline status.
     inserted = len(work)
     con.close()
 
