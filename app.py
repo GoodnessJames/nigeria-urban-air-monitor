@@ -79,6 +79,17 @@ DISPLAY_NAMES = {
     "dust": "Dust",
 }
 
+POLLUTANT_AQI_COLUMNS = {
+    "PM2.5": "us_aqi_pm2_5",
+    "PM10": "us_aqi_pm10",
+    "NO₂": "us_aqi_nitrogen_dioxide",
+    "O₃": "us_aqi_ozone",
+    "SO₂": "us_aqi_sulphur_dioxide",
+    "CO": "us_aqi_carbon_monoxide",
+    "Dust": None,
+}
+
+
 DB_LOCK = threading.RLock()
 LAST_INGESTION_UTC: datetime | None = None
 
@@ -306,6 +317,12 @@ def initialize_database() -> None:
             dust DOUBLE,
             european_aqi DOUBLE,
             us_aqi DOUBLE,
+            us_aqi_pm2_5 DOUBLE,
+            us_aqi_pm10 DOUBLE,
+            us_aqi_nitrogen_dioxide DOUBLE,
+            us_aqi_ozone DOUBLE,
+            us_aqi_sulphur_dioxide DOUBLE,
+            us_aqi_carbon_monoxide DOUBLE,
             ingested_at_utc TIMESTAMP NOT NULL,
             UNIQUE(location_id, observed_at)
         )
@@ -326,6 +343,20 @@ def initialize_database() -> None:
         )
         """
     )
+
+    # Automatically upgrade older DuckDB files.
+    for column_name in [
+        "us_aqi_pm2_5",
+        "us_aqi_pm10",
+        "us_aqi_nitrogen_dioxide",
+        "us_aqi_ozone",
+        "us_aqi_sulphur_dioxide",
+        "us_aqi_carbon_monoxide",
+    ]:
+        con.execute(
+            f"ALTER TABLE air_quality_observations "
+            f"ADD COLUMN IF NOT EXISTS {column_name} DOUBLE"
+        )
 
     # Database-managed IDs prevent duplicate primary-key errors when Streamlit
     # reruns the app or more than one browser session writes at the same time.
@@ -396,6 +427,12 @@ def parse_hourly_response(
         "dust": "dust",
         "european_aqi": "european_aqi",
         "us_aqi": "us_aqi",
+        "us_aqi_pm2_5": "us_aqi_pm2_5",
+        "us_aqi_pm10": "us_aqi_pm10",
+        "us_aqi_nitrogen_dioxide": "us_aqi_nitrogen_dioxide",
+        "us_aqi_ozone": "us_aqi_ozone",
+        "us_aqi_sulphur_dioxide": "us_aqi_sulphur_dioxide",
+        "us_aqi_carbon_monoxide": "us_aqi_carbon_monoxide",
     }
 
     df = df.rename(columns=rename_map)
@@ -430,6 +467,12 @@ def parse_hourly_response(
         "dust",
         "european_aqi",
         "us_aqi",
+        "us_aqi_pm2_5",
+        "us_aqi_pm10",
+        "us_aqi_nitrogen_dioxide",
+        "us_aqi_ozone",
+        "us_aqi_sulphur_dioxide",
+        "us_aqi_carbon_monoxide",
     ]
 
     return df[columns].copy()
@@ -495,6 +538,12 @@ def insert_observations(df: pd.DataFrame) -> int:
         "dust",
         "european_aqi",
         "us_aqi",
+        "us_aqi_pm2_5",
+        "us_aqi_pm10",
+        "us_aqi_nitrogen_dioxide",
+        "us_aqi_ozone",
+        "us_aqi_sulphur_dioxide",
+        "us_aqi_carbon_monoxide",
         "ingested_at_utc",
     ]
 
@@ -557,7 +606,10 @@ def ingest_current_data(force: bool = False) -> dict:
                 "current": (
                     "pm2_5,pm10,nitrogen_dioxide,ozone,"
                     "sulphur_dioxide,carbon_monoxide,dust,"
-                    "european_aqi,us_aqi"
+                    "european_aqi,us_aqi,"
+                    "us_aqi_pm2_5,us_aqi_pm10,us_aqi_nitrogen_dioxide,"
+                    "us_aqi_ozone,us_aqi_sulphur_dioxide,"
+                    "us_aqi_carbon_monoxide"
                 ),
                 "timezone": "Africa/Lagos",
             }
@@ -592,6 +644,18 @@ def ingest_current_data(force: bool = False) -> dict:
                             "dust": current.get("dust"),
                             "european_aqi": current.get("european_aqi"),
                             "us_aqi": current.get("us_aqi"),
+                            "us_aqi_pm2_5": current.get("us_aqi_pm2_5"),
+                            "us_aqi_pm10": current.get("us_aqi_pm10"),
+                            "us_aqi_nitrogen_dioxide": current.get(
+                                "us_aqi_nitrogen_dioxide"
+                            ),
+                            "us_aqi_ozone": current.get("us_aqi_ozone"),
+                            "us_aqi_sulphur_dioxide": current.get(
+                                "us_aqi_sulphur_dioxide"
+                            ),
+                            "us_aqi_carbon_monoxide": current.get(
+                                "us_aqi_carbon_monoxide"
+                            ),
                         }
                     ]
                 )
@@ -686,7 +750,10 @@ def backfill_history(days: int = 90) -> dict:
             "hourly": (
                 "pm2_5,pm10,nitrogen_dioxide,ozone,"
                 "sulphur_dioxide,carbon_monoxide,dust,"
-                "european_aqi,us_aqi"
+                "european_aqi,us_aqi,"
+                "us_aqi_pm2_5,us_aqi_pm10,us_aqi_nitrogen_dioxide,"
+                "us_aqi_ozone,us_aqi_sulphur_dioxide,"
+                "us_aqi_carbon_monoxide"
             ),
             "past_days": min(days, 90),
             "forecast_days": 0,
@@ -741,7 +808,13 @@ def query_current_pollution() -> pd.DataFrame:
             o.carbon_monoxide,
             o.dust,
             o.european_aqi,
-            o.us_aqi
+            o.us_aqi,
+            o.us_aqi_pm2_5,
+            o.us_aqi_pm10,
+            o.us_aqi_nitrogen_dioxide,
+            o.us_aqi_ozone,
+            o.us_aqi_sulphur_dioxide,
+            o.us_aqi_carbon_monoxide
         FROM air_quality_observations o
         JOIN latest x
           ON o.location_id = x.location_id
@@ -1222,34 +1295,6 @@ st.markdown(
 
 
 # ============================================================
-# US AQI GUIDE
-# ============================================================
-
-with st.expander(
-    "ℹ️ How to read US AQI"
-):
-
-    st.markdown(
-        """
-        **US AQI indicates how clean or polluted the air is.**
-
-        | US AQI | Category |
-        |---:|---|
-        | **0–50** | 🟢 Good |
-        | **51–100** | 🟡 Moderate |
-        | **101–150** | 🟠 Unhealthy for Sensitive Groups |
-        | **151–200** | 🔴 Unhealthy |
-        | **201–300** | 🟣 Very Unhealthy |
-        | **301–500** | 🟤 Hazardous |
-
-        **Lower AQI = better air quality.**
-        **Higher AQI = greater health concern.**
-
-        The dashboard uses the pollutant-specific US AQI
-        supplied directly by Open-Meteo.
-        """
-    )
-# ============================================================
 # LIVE DASHBOARD — AUTO-REFRESHES EVERY 60 SECONDS
 # ============================================================
 
@@ -1361,22 +1406,69 @@ def live_dashboard():
 
     metric_columns = st.columns(len(filtered_current))
 
+    selected_aqi_column = POLLUTANT_AQI_COLUMNS[selected_pollutant]
+
     for column, (_, row) in zip(
         metric_columns, filtered_current.iterrows()
     ):
         with column:
-            status, icon = classify_us_aqi(row["us_aqi"])
-            value = row[selected_column]
+            concentration = row[selected_column]
 
-            st.metric(
-                label=row["location_name"],
-                value=(
-                    f"{value:.1f}"
-                    if pd.notna(value)
-                    else "N/A"
-                ),
-                delta=f"{icon} {status}",
+            if selected_aqi_column is None:
+                aqi_text = "US AQI not available"
+                category_text = "⚪ Not available"
+            else:
+                pollutant_aqi = row[selected_aqi_column]
+                status, icon = classify_us_aqi(pollutant_aqi)
+
+                if pd.notna(pollutant_aqi):
+                    aqi_text = f"US AQI {float(pollutant_aqi):.0f}"
+                    category_text = f"{icon} {status}"
+                else:
+                    aqi_text = "US AQI N/A"
+                    category_text = "⚪ Unknown"
+
+            st.markdown(
+                f'''
+                <div class="status-card">
+                    <div class="status-city">{row["location_name"]}</div>
+                    <div class="status-value">
+                        {f"{concentration:.1f}" if pd.notna(concentration) else "N/A"}
+                        <span style="font-size:0.9rem;">µg/m³</span>
+                    </div>
+                    <div style="margin-top:0.45rem; font-weight:750; color:#334155;">
+                        {aqi_text}
+                    </div>
+                    <div class="status-label">
+                        {category_text}
+                    </div>
+                </div>
+                ''',
+                unsafe_allow_html=True,
             )
+
+    with st.expander("ℹ️ How to read US AQI"):
+        st.markdown(
+            '''
+            **US AQI categories**
+
+            | US AQI | Category |
+            |---:|---|
+            | **0–50** | 🟢 Good |
+            | **51–100** | 🟡 Moderate |
+            | **101–150** | 🟠 Unhealthy for Sensitive Groups |
+            | **151–200** | 🔴 Unhealthy |
+            | **201–300** | 🟣 Very Unhealthy |
+            | **301–500** | 🟤 Hazardous |
+
+            The concentration is the amount of the selected pollutant.
+            The pollutant-specific US AQI is the AQI for that pollutant.
+            The category shown on each card is based on that pollutant-specific
+            AQI, not the city's overall US AQI.
+
+            **Example:** CO → `379.0 µg/m³` → `US AQI 45` → 🟢 Good.
+            '''
+        )
 
     # ========================================================
     # ① CITY POLLUTION COMPARISON
