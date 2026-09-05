@@ -1222,7 +1222,35 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# ============================================================
+# US AQI GUIDE
+# ============================================================
 
+with st.expander(
+    "ℹ️ How to read AQI"
+):
+
+    st.markdown(
+        """
+        **US AQI indicates how clean or polluted the air is.**
+
+        | US AQI | Category |
+        |---:|---|
+        | **0–50** | 🟢 Good |
+        | **51–100** | 🟡 Moderate |
+        | **101–150** | 🟠 Unhealthy for Sensitive Groups |
+        | **151–200** | 🔴 Unhealthy |
+        | **201–300** | 🟣 Very Unhealthy |
+        | **301–500** | 🟤 Hazardous |
+
+        **Lower AQI = better air quality.**
+        **Higher AQI = greater health concern.**
+
+        This dashboard uses the pollutant-specific US AQI
+        supplied directly by Open-Meteo.
+        """
+    )
+   
 # ============================================================
 # LIVE DASHBOARD — AUTO-REFRESHES EVERY 60 SECONDS
 # ============================================================
@@ -1351,35 +1379,6 @@ def live_dashboard():
                 ),
                 delta=f"{icon} {status}",
             )
-           
-# ============================================================
-# US AQI GUIDE
-# ============================================================
-
-with st.expander(
-    "ℹ️ How to read AQI"
-):
-
-    st.markdown(
-        """
-        **US AQI indicates how clean or polluted the air is.**
-
-        | US AQI | Category |
-        |---:|---|
-        | **0–50** | 🟢 Good |
-        | **51–100** | 🟡 Moderate |
-        | **101–150** | 🟠 Unhealthy for Sensitive Groups |
-        | **151–200** | 🔴 Unhealthy |
-        | **201–300** | 🟣 Very Unhealthy |
-        | **301–500** | 🟤 Hazardous |
-
-        **Lower AQI = better air quality.**
-        **Higher AQI = greater health concern.**
-
-        This dashboard uses the pollutant-specific US AQI
-        supplied directly by Open-Meteo.
-        """
-    )
    
     # ========================================================
     # ① CITY POLLUTION COMPARISON
