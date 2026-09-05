@@ -1129,14 +1129,14 @@ def classify_us_aqi(aqi) -> tuple[str, str]:
     if aqi <= 50:
         return "Good", "🟢"
     if aqi <= 100:
-        return "Moderate", "🟠"
+        return "Moderate", "🟡"
     return "Poor", "🔴"
 
 
 def status_color(status: str) -> str:
     return {
         "Good": "#16a34a",
-        "Moderate": "#d97706",
+        "Moderate": "#eab308",
         "Poor": "#dc2626",
         "Unknown": "#64748b",
     }.get(status, "#64748b")
@@ -1349,6 +1349,35 @@ def live_dashboard():
                 ),
                 delta=f"{icon} {status}",
             )
+
+# ============================================================
+# US AQI GUIDE
+# ============================================================
+
+with st.expander(
+    "ℹ️ How to read US AQI"
+):
+
+    st.markdown(
+        """
+        **US AQI indicates how clean or polluted the air is.**
+
+        | US AQI | Category |
+        |---:|---|
+        | **0–50** | 🟢 Good |
+        | **51–100** | 🟡 Moderate |
+        | **101–150** | 🟠 Unhealthy for Sensitive Groups |
+        | **151–200** | 🔴 Unhealthy |
+        | **201–300** | 🟣 Very Unhealthy |
+        | **301–500** | 🟤 Hazardous |
+
+        **Lower AQI = better air quality.**
+        **Higher AQI = greater health concern.**
+
+        The dashboard uses the pollutant-specific US AQI
+        supplied directly by Open-Meteo.
+        """
+    )
 
     # ========================================================
     # ① CITY POLLUTION COMPARISON
