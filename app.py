@@ -1480,7 +1480,7 @@ def live_dashboard():
     # ① CITY POLLUTION COMPARISON
     # ========================================================
     st.markdown(
-        '<div class="section-title">① CITY POLLUTION COMPARISON</div>'
+        '<div class="section-title"> CITY POLLUTION COMPARISON</div>'
         '<div class="section-subtitle">'
         "Which city currently has the highest PM2.5 concentration?"
         "</div>",
@@ -1540,7 +1540,7 @@ def live_dashboard():
     # ③ WHEN IS POLLUTION WORST?
     # ========================================================
     st.markdown(
-        '<div class="section-title">③ WHEN IS POLLUTION WORST?</div>'
+        '<div class="section-title"> WHEN IS POLLUTION WORST?</div>'
         '<div class="section-subtitle">'
         "Average PM2.5 by hour of day across the available history."
         "</div>",
@@ -1605,7 +1605,7 @@ def live_dashboard():
     # ④ POLLUTANT PROFILE
     # ========================================================
     st.markdown(
-        '<div class="section-title">④ POLLUTANT PROFILE</div>'
+        '<div class="section-title"> POLLUTANT PROFILE</div>'
         '<div class="section-subtitle">'
         "What pollutants are present in the latest observation?"
         "</div>",
@@ -1665,7 +1665,7 @@ def live_dashboard():
     # ⑤ AIR QUALITY FORECAST
     # ========================================================
     st.markdown(
-        '<div class="section-title">🔮 ⑤ AIR QUALITY FORECAST</div>'
+        '<div class="section-title">🔮 AIR QUALITY FORECAST</div>'
         '<div class="section-subtitle">'
         "Historical PM2.5, future point predictions and uncertainty intervals."
         "</div>",
@@ -1786,7 +1786,7 @@ def live_dashboard():
     # ========================================================
     st.markdown(
         '<div class="section-title">'
-        "🚨 ⑥ CURRENT CONDITIONS VS RECENT BASELINE"
+        "🚨 CURRENT CONDITIONS VS RECENT BASELINE"
         "</div>"
         '<div class="section-subtitle">'
         "Is current PM2.5 unusual compared with the previous seven-day average?"
@@ -1957,8 +1957,7 @@ def live_dashboard():
         <div class="small-note">
         <b>Data source:</b> Open-Meteo Air Quality API using CAMS-based
         modelled air-quality data. Values represent model output rather than
-        street-level sensor measurements. AQI labels are used for dashboard
-        communication and should not be interpreted as causal evidence.
+        street-level sensor measurements.
         </div>
         """,
         unsafe_allow_html=True,
