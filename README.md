@@ -16,6 +16,8 @@ The dashboard compares a seasonal-naive baseline with SARIMAX using a hidden 24-
 ### 4. Live Public Deployment
 The Streamlit app is designed for Streamlit Community Cloud. Push the repository to GitHub and deploy `app.py` from Community Cloud.
 
+**Deployed site:** https://nigeria-urban-air-monitor.streamlit.app/
+
 ## Google Colab
 
 Upload or clone this repository into Colab, then run:
