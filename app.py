@@ -1129,14 +1129,14 @@ def classify_us_aqi(aqi) -> tuple[str, str]:
     if aqi <= 50:
         return "Good", "🟢"
     if aqi <= 100:
-        return "Moderate", "🟠"
+        return "Moderate", "🟡"
     return "Poor", "🔴"
 
 
 def status_color(status: str) -> str:
     return {
         "Good": "#16a34a",
-        "Moderate": "#d97706",
+        "Moderate": "#eab308",
         "Poor": "#dc2626",
         "Unknown": "#64748b",
     }.get(status, "#64748b")
