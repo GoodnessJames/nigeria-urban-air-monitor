@@ -52,7 +52,10 @@ LOCAL_TZ = ZoneInfo("Africa/Lagos")
 CITIES = {
     "Lagos": {"location_id": 1, "latitude": 6.5244, "longitude": 3.3792},
     "Abuja": {"location_id": 2, "latitude": 9.0765, "longitude": 7.3986},
-    "Port Harcourt": {"location_id": 3, "latitude": 4.8156, "longitude": 7.0498,
+    "Port Harcourt": {
+        "location_id": 3,
+        "latitude": 4.8156,
+        "longitude": 7.0498,
     },
 }
 
@@ -418,7 +421,6 @@ def parse_hourly_response(
         "location_id",
         "location_name",
         "observed_at",
-       
         "pm2_5",
         "pm10",
         "nitrogen_dioxide",
@@ -426,7 +428,6 @@ def parse_hourly_response(
         "sulphur_dioxide",
         "carbon_monoxide",
         "dust",
-       
         "european_aqi",
         "us_aqi",
     ]
@@ -485,7 +486,6 @@ def insert_observations(df: pd.DataFrame) -> int:
         "observation_id",
         "location_id",
         "observed_at",
-       
         "pm2_5",
         "pm10",
         "nitrogen_dioxide",
@@ -493,10 +493,8 @@ def insert_observations(df: pd.DataFrame) -> int:
         "sulphur_dioxide",
         "carbon_monoxide",
         "dust",
-       
         "european_aqi",
         "us_aqi",
-       
         "ingested_at_utc",
     ]
 
@@ -1222,35 +1220,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ============================================================
-# US AQI GUIDE
-# ============================================================
 
-with st.expander(
-    "ℹ️ How to read AQI"
-):
-
-    st.markdown(
-        """
-        **US AQI indicates how clean or polluted the air is.**
-
-        | US AQI | Category |
-        |---:|---|
-        | **0–50** | 🟢 Good |
-        | **51–100** | 🟡 Moderate |
-        | **101–150** | 🟠 Unhealthy for Sensitive Groups |
-        | **151–200** | 🔴 Unhealthy |
-        | **201–300** | 🟣 Very Unhealthy |
-        | **301–500** | 🟤 Hazardous |
-
-        **Lower AQI = better air quality.**
-        **Higher AQI = greater health concern.**
-
-        This dashboard uses the pollutant-specific US AQI
-        supplied directly by Open-Meteo.
-        """
-    )
-   
 # ============================================================
 # LIVE DASHBOARD — AUTO-REFRESHES EVERY 60 SECONDS
 # ============================================================
@@ -1379,12 +1349,12 @@ def live_dashboard():
                 ),
                 delta=f"{icon} {status}",
             )
-   
+
     # ========================================================
     # ① CITY POLLUTION COMPARISON
     # ========================================================
     st.markdown(
-        '<div class="section-title"> CITY POLLUTION COMPARISON</div>'
+        '<div class="section-title">① CITY POLLUTION COMPARISON</div>'
         '<div class="section-subtitle">'
         "Which city currently has the highest PM2.5 concentration?"
         "</div>",
@@ -1444,7 +1414,7 @@ def live_dashboard():
     # ③ WHEN IS POLLUTION WORST?
     # ========================================================
     st.markdown(
-        '<div class="section-title"> WHEN IS POLLUTION WORST?</div>'
+        '<div class="section-title">③ WHEN IS POLLUTION WORST?</div>'
         '<div class="section-subtitle">'
         "Average PM2.5 by hour of day across the available history."
         "</div>",
@@ -1509,7 +1479,7 @@ def live_dashboard():
     # ④ POLLUTANT PROFILE
     # ========================================================
     st.markdown(
-        '<div class="section-title"> POLLUTANT PROFILE</div>'
+        '<div class="section-title">④ POLLUTANT PROFILE</div>'
         '<div class="section-subtitle">'
         "What pollutants are present in the latest observation?"
         "</div>",
@@ -1569,7 +1539,7 @@ def live_dashboard():
     # ⑤ AIR QUALITY FORECAST
     # ========================================================
     st.markdown(
-        '<div class="section-title">🔮 AIR QUALITY FORECAST</div>'
+        '<div class="section-title">🔮 ⑤ AIR QUALITY FORECAST</div>'
         '<div class="section-subtitle">'
         "Historical PM2.5, future point predictions and uncertainty intervals."
         "</div>",
@@ -1690,7 +1660,7 @@ def live_dashboard():
     # ========================================================
     st.markdown(
         '<div class="section-title">'
-        "🚨 CURRENT CONDITIONS VS RECENT BASELINE"
+        "🚨 ⑥ CURRENT CONDITIONS VS RECENT BASELINE"
         "</div>"
         '<div class="section-subtitle">'
         "Is current PM2.5 unusual compared with the previous seven-day average?"
@@ -1860,7 +1830,9 @@ def live_dashboard():
         """
         <div class="small-note">
         <b>Data source:</b> Open-Meteo Air Quality API using CAMS-based
-        modelled air-quality data. 
+        modelled air-quality data. Values represent model output rather than
+        street-level sensor measurements. AQI labels are used for dashboard
+        communication and should not be interpreted as causal evidence.
         </div>
         """,
         unsafe_allow_html=True,
