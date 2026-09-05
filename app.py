@@ -79,7 +79,7 @@ DISPLAY_NAMES = {
     "dust": "Dust",
 }
 
-DB_LOCK = threading.Lock()
+DB_LOCK = threading.RLock()
 LAST_INGESTION_UTC: datetime | None = None
 
 
@@ -214,6 +214,63 @@ def get_connection():
     return duckdb.connect(str(DB_PATH))
 
 
+def ensure_sequence(con, sequence_name: str, table_name: str, id_column: str) -> None:
+    """Create a DuckDB sequence above the existing maximum ID if needed."""
+    exists = con.execute(
+        """
+        SELECT COUNT(*)
+        FROM duckdb_sequences()
+        WHERE schema_name = 'main' AND sequence_name = ?
+        """,
+        [sequence_name],
+    ).fetchone()[0]
+
+    if not exists:
+        max_id = con.execute(
+            f"SELECT COALESCE(MAX({id_column}), 0) FROM {table_name}"
+        ).fetchone()[0]
+        con.execute(
+            f"CREATE SEQUENCE IF NOT EXISTS {sequence_name} START {int(max_id) + 1}"
+        )
+
+
+def allocate_sequence_ids(
+    con, sequence_name: str, table_name: str, id_column: str, count: int
+) -> list[int]:
+    """Allocate unique IDs from a database-managed DuckDB sequence.
+
+    The small catch-up loop also repairs an older sequence that was created
+    below the table's existing MAX(id).
+    """
+    if count <= 0:
+        return []
+
+    ensure_sequence(con, sequence_name, table_name, id_column)
+    max_id = int(
+        con.execute(
+            f"SELECT COALESCE(MAX({id_column}), 0) FROM {table_name}"
+        ).fetchone()[0]
+    )
+
+    ids = []
+    for _ in range(count):
+        candidate = int(
+            con.execute(
+                f"SELECT nextval('{sequence_name}')",
+            ).fetchone()[0]
+        )
+        while candidate <= max_id:
+            candidate = int(
+                con.execute(
+                    f"SELECT nextval('{sequence_name}')",
+                ).fetchone()[0]
+            )
+        ids.append(candidate)
+        max_id = max(max_id, candidate)
+
+    return ids
+
+
 def initialize_database() -> None:
     """
     Create the database schema and seed the three monitored cities.
@@ -268,6 +325,21 @@ def initialize_database() -> None:
             error_message VARCHAR
         )
         """
+    )
+
+    # Database-managed IDs prevent duplicate primary-key errors when Streamlit
+    # reruns the app or more than one browser session writes at the same time.
+    ensure_sequence(
+        con,
+        "observation_id_seq",
+        "air_quality_observations",
+        "observation_id",
+    )
+    ensure_sequence(
+        con,
+        "ingestion_id_seq",
+        "ingestion_log",
+        "ingestion_id",
     )
 
     for city, info in CITIES.items():
@@ -375,10 +447,6 @@ def insert_observations(df: pd.DataFrame) -> int:
 
     con = get_connection()
 
-    current_max = con.execute(
-        "SELECT COALESCE(MAX(observation_id), 0) FROM air_quality_observations"
-    ).fetchone()[0]
-
     work = df.copy()
     work["ingested_at_utc"] = datetime.now(timezone.utc).replace(tzinfo=None)
 
@@ -406,10 +474,12 @@ def insert_observations(df: pd.DataFrame) -> int:
         return 0
 
     work = work.reset_index(drop=True)
-    work["observation_id"] = np.arange(
-        current_max + 1,
-        current_max + 1 + len(work),
-        dtype=np.int64,
+    work["observation_id"] = allocate_sequence_ids(
+        con,
+        "observation_id_seq",
+        "air_quality_observations",
+        "observation_id",
+        len(work),
     )
 
     insert_columns = [
@@ -469,14 +539,6 @@ def ingest_current_data(force: bool = False) -> dict:
             }
 
         initialize_database()
-
-        con = get_connection()
-        next_log_id = (
-            con.execute(
-                "SELECT COALESCE(MAX(ingestion_id), 0) + 1 FROM ingestion_log"
-            ).fetchone()[0]
-        )
-        con.close()
 
         started = datetime.now(timezone.utc).replace(tzinfo=None)
 
@@ -545,13 +607,20 @@ def ingest_current_data(force: bool = False) -> dict:
         status = "SUCCESS" if not errors else "PARTIAL"
 
         con = get_connection()
+        ingestion_id = allocate_sequence_ids(
+            con,
+            "ingestion_id_seq",
+            "ingestion_log",
+            "ingestion_id",
+            1,
+        )[0]
         con.execute(
             """
             INSERT INTO ingestion_log
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
-                next_log_id,
+                ingestion_id,
                 started,
                 completed,
                 len(CITIES),
@@ -1313,7 +1382,7 @@ def live_dashboard():
         )
         st.plotly_chart(
             chart_layout(city_chart, 390),
-            use_container_width=True,
+            width="stretch",
         )
 
     # ========================================================
@@ -1338,7 +1407,7 @@ def live_dashboard():
 
         st.plotly_chart(
             chart_layout(trend_chart, 390),
-            use_container_width=True,
+            width="stretch",
         )
 
     # ========================================================
@@ -1381,7 +1450,7 @@ def live_dashboard():
         heatmap.update_layout(title="Hourly PM2.5 Pattern")
         st.plotly_chart(
             chart_layout(heatmap, 360),
-            use_container_width=True,
+            width="stretch",
         )
 
     with col2:
@@ -1403,7 +1472,7 @@ def live_dashboard():
 
         st.plotly_chart(
             chart_layout(hourly_line, 360),
-            use_container_width=True,
+            width="stretch",
         )
 
     # ========================================================
@@ -1457,7 +1526,7 @@ def live_dashboard():
 
     st.plotly_chart(
         chart_layout(profile_chart, 420),
-        use_container_width=True,
+        width="stretch",
     )
 
     st.caption(
@@ -1551,7 +1620,7 @@ def live_dashboard():
 
     st.plotly_chart(
         chart_layout(forecast_fig, 480),
-        use_container_width=True,
+        width="stretch",
     )
 
     forecast_col1, forecast_col2, forecast_col3 = st.columns(3)
